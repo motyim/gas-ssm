@@ -31,21 +31,14 @@ public class PaymentServiceImpl implements PaymentService {
     @Override
     public StateMachine<PaymentState, PaymentEvent> preAuth(long paymentId) {
         StateMachine<PaymentState, PaymentEvent> stateMachine = buildContext(paymentId);
-        sendEvent(paymentId,stateMachine,PaymentEvent.PRE_AUT_APPROVED);
+        sendEvent(paymentId,stateMachine,PaymentEvent.PRE_AUTHORIZE);
         return stateMachine;
     }
 
     @Override
     public StateMachine<PaymentState, PaymentEvent> authPayment(long paymentId) {
         StateMachine<PaymentState, PaymentEvent> stateMachine = buildContext(paymentId);
-        sendEvent(paymentId,stateMachine,PaymentEvent.AUTH_APPROVE);
-        return stateMachine;
-    }
-
-    @Override
-    public StateMachine<PaymentState, PaymentEvent> declineAuthPayment(long paymentId) {
-        StateMachine<PaymentState, PaymentEvent> stateMachine = buildContext(paymentId);
-        sendEvent(paymentId,stateMachine,PaymentEvent.AUTH_DECLINE);
+        sendEvent(paymentId,stateMachine,PaymentEvent.AUTHORIZE);
         return stateMachine;
     }
 
@@ -53,6 +46,7 @@ public class PaymentServiceImpl implements PaymentService {
         log.info("send event :{}",event);
         Message<PaymentEvent> message = MessageBuilder.withPayload(event).setHeader(HEADER_NAME, paymentId).build();
         stateMachine.sendEvent(message);
+        log.info("end send event :{}",event);
     }
 
     private StateMachine<PaymentState, PaymentEvent> buildContext(long paymentId) {

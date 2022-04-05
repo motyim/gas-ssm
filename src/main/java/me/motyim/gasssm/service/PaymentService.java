@@ -15,6 +15,4 @@ public interface PaymentService {
 
     StateMachine<PaymentState, PaymentEvent> authPayment(long paymentId);
 
-    StateMachine<PaymentState, PaymentEvent> declineAuthPayment(long paymentId);
-
 }
