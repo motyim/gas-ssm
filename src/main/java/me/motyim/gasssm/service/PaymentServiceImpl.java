@@ -1,6 +1,7 @@
 package me.motyim.gasssm.service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import me.motyim.gasssm.domain.PaymentEvent;
 import me.motyim.gasssm.domain.PaymentState;
 import me.motyim.gasssm.modal.entites.Payment;
@@ -12,12 +13,14 @@ import org.springframework.statemachine.config.StateMachineFactory;
 import org.springframework.statemachine.support.DefaultStateMachineContext;
 import org.springframework.stereotype.Service;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class PaymentServiceImpl implements PaymentService {
 
     private final PaymentRepository repository;
     private final StateMachineFactory<PaymentState,PaymentEvent> factory;
+    private final PaymentStateChangeInterceptor interceptor;
 
     @Override
     public Payment newPayment(Payment payment) {
@@ -28,22 +31,26 @@ public class PaymentServiceImpl implements PaymentService {
     @Override
     public StateMachine<PaymentState, PaymentEvent> preAuth(long paymentId) {
         StateMachine<PaymentState, PaymentEvent> stateMachine = buildContext(paymentId);
-        return null;
+        sendEvent(paymentId,stateMachine,PaymentEvent.PRE_AUT_APPROVED);
+        return stateMachine;
     }
 
     @Override
     public StateMachine<PaymentState, PaymentEvent> authPayment(long paymentId) {
         StateMachine<PaymentState, PaymentEvent> stateMachine = buildContext(paymentId);
-        return null;
+        sendEvent(paymentId,stateMachine,PaymentEvent.AUTH_APPROVE);
+        return stateMachine;
     }
 
     @Override
     public StateMachine<PaymentState, PaymentEvent> declineAuthPayment(long paymentId) {
         StateMachine<PaymentState, PaymentEvent> stateMachine = buildContext(paymentId);
-        return null;
+        sendEvent(paymentId,stateMachine,PaymentEvent.AUTH_DECLINE);
+        return stateMachine;
     }
 
     private void sendEvent(long paymentId,StateMachine<PaymentState, PaymentEvent> stateMachine,PaymentEvent event){
+        log.info("send event :{}",event);
         Message<PaymentEvent> message = MessageBuilder.withPayload(event).setHeader(HEADER_NAME, paymentId).build();
         stateMachine.sendEvent(message);
     }
@@ -56,10 +63,12 @@ public class PaymentServiceImpl implements PaymentService {
 
         stateMachine.getStateMachineAccessor()
                         .doWithAllRegions(sma ->{
+                            sma.addStateMachineInterceptor(interceptor);
                             sma.resetStateMachine(new DefaultStateMachineContext<>(payment.getState(),null,null,null));
                         });
 
         stateMachine.start();
+        return stateMachine;
     }
 
 
